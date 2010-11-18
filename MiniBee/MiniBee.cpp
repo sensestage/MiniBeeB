@@ -745,6 +745,16 @@ void MiniBee::readConfig(void) {
 	free(config);
 }
 
+bool MiniBee::isValidPin( uint8_t id ){
+  bool isvalid = false;
+  for ( uint8_t j = 0; j<NRPINS; j++ ){
+      if ( pin_ids[j] == id ){
+	  isvalid = true;
+      }
+  }
+  return isvalid;
+}
+
 void MiniBee::parseConfig(void){
 	uint8_t pin = 0;
 	int datasizeout = 0;
@@ -756,92 +766,94 @@ void MiniBee::parseConfig(void){
 	msgInterval = config[1]*256 + config[2];
 	samplesPerMsg = config[3];
 	for(i = 0;i < (CONFIG_BYTES-4);i++){
-	//  pin = i + PINOFFSET;
-	    pin = pin_ids[i];
-	    if ( custom_pin[ i ] ){
-	      config[i+4] = Custom;
-	      hasCustom = true;
-	    } else {
-		switch( config[i+4] ){
-		    case AnalogIn10bit:
-			if ( i >= ANAOFFSET ){
-			    analog_precision[i-ANAOFFSET] = true;
-			    analog_in[i-ANAOFFSET] = true;
+	    pin = i + PINOFFSET;
+	//    pin = pin_ids[i];
+	    if ( isValidPin( pin ) ){
+		if ( custom_pin[ i ] ){
+		  config[i+4] = Custom;
+		  hasCustom = true;
+		} else {
+		    switch( config[i+4] ){
+			case AnalogIn10bit:
+			    if ( i >= ANAOFFSET ){
+				analog_precision[i-ANAOFFSET] = true;
+				analog_in[i-ANAOFFSET] = true;
+				pinMode( pin, INPUT );
+				datasize += 2;
+				hasInput = true;
+			    }
+			    break;
+			case AnalogIn:
+			    if ( i >= ANAOFFSET ){
+				analog_precision[i-ANAOFFSET] = false;
+				analog_in[i-ANAOFFSET] = true;
+				pinMode( pin, INPUT );
+				datasize += 1;
+				hasInput = true;
+			    }
+			    break;
+			case DigitalIn:
 			    pinMode( pin, INPUT );
-			    datasize += 2;
-			    hasInput = true;
-			}
-			break;
-		    case AnalogIn:
-			if ( i >= ANAOFFSET ){
-			    analog_precision[i-ANAOFFSET] = false;
-			    analog_in[i-ANAOFFSET] = true;
-			    pinMode( pin, INPUT );
+			    digital_in[i] = true;
 			    datasize += 1;
 			    hasInput = true;
-			}
-			break;
-		    case DigitalIn:
-			pinMode( pin, INPUT );
-			digital_in[i] = true;
-			datasize += 1;
-			hasInput = true;
-			break;
-		    case AnalogOut:
-			for ( int j=0; j < 6; j++ ){
-			    if ( pwm_pins[j] == pin ){
-				pinMode( pin, OUTPUT );
-				pwm_on[j] = true;
-				datasizeout++;
-				hasOutput = true;
+			    break;
+			case AnalogOut:
+			    for ( int j=0; j < 6; j++ ){
+				if ( pwm_pins[j] == pin ){
+				    pinMode( pin, OUTPUT );
+				    pwm_on[j] = true;
+				    datasizeout++;
+				    hasOutput = true;
+				}
 			    }
-			}
-			break;
-		    case DigitalOut:
-			digital_out[ i ] = true;
-			pinMode( pin , OUTPUT );
-			datasizeout++;
-			hasOutput = true;
-			break;
-    #if MINIBEE_ENABLE_SHT == 1
-		    case SHTClock:
-			sht_pins[0] = pin;
-			shtOn = true;
-			pinMode(  pin, OUTPUT );
-			break;
-		    case SHTData:
-			sht_pins[1] = pin;
-			shtOn = true;
-			pinMode( pin, OUTPUT );
-			datasize += 4;
-			hasInput = true;
-			break;
-    #endif
-    #if MINIBEE_ENABLE_TWI == 1
-		    case TWIClock:
-		    case TWIData:
-			twiOn = true;
-			datasize += 6;
-			hasInput = true;
-			break;
-    #endif
-    #if MINIBEE_ENABLE_PING == 1
-		    case Ping:
-			pingOn = true;
-			ping_pin = pin;
-			datasize += 2;
-			hasInput = true;
-			break;
-    #endif
-		    case Custom:
-			// pin is used in the custom part of the firmware
-			custom_pin[ i ] = true;
-			hasCustom = true;
-			break;
-		    case NotUsed:
-			break;
-		    case UnConfigured:
-			break;
+			    break;
+			case DigitalOut:
+			    digital_out[ i ] = true;
+			    pinMode( pin , OUTPUT );
+			    datasizeout++;
+			    hasOutput = true;
+			    break;
+	#if MINIBEE_ENABLE_SHT == 1
+			case SHTClock:
+			    sht_pins[0] = pin;
+			    shtOn = true;
+			    pinMode(  pin, OUTPUT );
+			    break;
+			case SHTData:
+			    sht_pins[1] = pin;
+			    shtOn = true;
+			    pinMode( pin, OUTPUT );
+			    datasize += 4;
+			    hasInput = true;
+			    break;
+	#endif
+	#if MINIBEE_ENABLE_TWI == 1
+			case TWIClock:
+			case TWIData:
+			    twiOn = true;
+			    datasize += 6;
+			    hasInput = true;
+			    break;
+	#endif
+	#if MINIBEE_ENABLE_PING == 1
+			case Ping:
+			    pingOn = true;
+			    ping_pin = pin;
+			    datasize += 2;
+			    hasInput = true;
+			    break;
+	#endif
+			case Custom:
+			    // pin is used in the custom part of the firmware
+			    custom_pin[ i ] = true;
+			    hasCustom = true;
+			    break;
+			case NotUsed:
+			    break;
+			case UnConfigured:
+			    break;
+		    }
 		}
 	    }
 	}
@@ -871,7 +883,7 @@ void MiniBee::parseConfig(void){
 // 	}
 	
 	uint8_t confSize = 9;
-	char * configInfo = (char*)malloc( sizeof(char) * (NRPINS*2 + confSize) );
+	char * configInfo = (char*)malloc( sizeof(char) * (19*2 + confSize) );
 	configInfo[0] = node_id;
 	configInfo[1] = config_id;
 	configInfo[2] = samplesPerMsg;

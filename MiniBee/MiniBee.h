@@ -282,14 +282,15 @@ class MiniBee {
 		bool digital_out[NRPINS]; // sets whether digital out on
 		char digital_values[NRPINS];
 		
+		bool isValidPin( uint8_t id );
 #if MINIBEE_REVISION == 'B'
 		uint8_t pin_ids[] = {3,4,5,6,7,8,9,10,11, 14,15,16,17 ,18,19,20,21; // ids of I/O pins
-		#define ANAOFFSET 9
+//		#define ANAOFFSET 9
 #endif
 #if MINIBEE_REVISION == 'A'
 		uint8_t pin_ids[] = {3,4,5,6,7,8,9,10,11, 12,13, 14,15,16,17 ,18,19,20,21; // ids of I/O pins
-		#define ANAOFFSET 11
 #endif
+		#define ANAOFFSET 11
 
 		bool digital_in[NRPINS]; // sets whether digital in on
 

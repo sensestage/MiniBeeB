@@ -2,9 +2,14 @@
 
 #if MINIBEE_ENABLE_TWI == 1
 #include <Wire.h>
+
+#if MINIBEE_REVISION == 'B'
 #include <ADXL345.h>
 ADXL345 accel;
 #endif
+
+#endif
+
 
 // #include <NewSoftSerial.h>
 
@@ -34,7 +39,7 @@ MiniBee::MiniBee() {
 	    analog_precision[i] = false; // false is 8bit, true is 10bit
 	    analog_in[i] = false;
 	}
-	for ( i = 0; i<19; i++ ){
+	for ( i = 0; i<NRPINS; i++ ){
 	    digital_in[i] = false;
 	    digital_out[i] = false;
 	    digital_values[i] = 0;
@@ -188,8 +193,8 @@ void MiniBee::setCustomInput( uint8_t noInputs, uint8_t size ){
 
 void MiniBee::setCustomPin( uint8_t id, uint8_t size ){
     if ( id >= PINOFFSET ){
-        custom_pin[id-PINOFFSET] = true;
-        custom_size[id-PINOFFSET] = size;
+        custom_pin[ pin_ids[id-PINOFFSET] ] = true;
+        custom_size[ pin_ids[id-PINOFFSET] ] = size;
     } // id's smaller than PINOFFSET allow for custom data without pin associated
     customDataSize += size;
     
@@ -599,7 +604,7 @@ void MiniBee::setOutputValues( char * msg, uint8_t offset ){
             i++;
         }
     }
-    for ( uint8_t j=0; j < 19; j++ ){
+    for ( uint8_t j=0; j < NRPINS; j++ ){
         if ( digital_out[j] ){
             digital_values[j] = msg[i];
             i++;
@@ -613,9 +618,9 @@ void MiniBee::setOutput(){
             analogWrite( pwm_pins[i], pwm_values[i] );
         }
 	} 
-	for( i=0; i<19; i++){
+	for( i=0; i<NRPINS; i++){
         if ( digital_out[i] ){
-            digitalWrite( i + PINOFFSET, digital_values[i] );
+            digitalWrite( pin_ids[i], digital_values[i] );
         }
 	} 
 }
@@ -641,10 +646,10 @@ uint8_t MiniBee::readSensors( uint8_t db ){
         }
     }
     // read digital sensors
-    for ( i = 0; i < 19; i++ ){
+    for ( i = 0; i < NRPINS; i++ ){
         if ( digital_in[i] ){
 	//TODO this can be done way more clever by shifting the results into 3 bytes, resulting in shorter messages to be sent.
-            data[db] = digitalRead(i+PINOFFSET);
+            data[db] = digitalRead( pin_ids[i] );
             db++;
         }
     }
@@ -751,92 +756,93 @@ void MiniBee::parseConfig(void){
 	msgInterval = config[1]*256 + config[2];
 	samplesPerMsg = config[3];
 	for(i = 0;i < (CONFIG_BYTES-4);i++){
-	    pin = i + PINOFFSET;
-	    if ( custom_pin[i] ){
-            config[i+4] = Custom;
-            hasCustom = true;
+	//  pin = i + PINOFFSET;
+	    pin = pin_ids[i];
+	    if ( custom_pin[ i ] ){
+	      config[i+4] = Custom;
+	      hasCustom = true;
 	    } else {
-            switch( config[i+4] ){
-                case AnalogIn10bit:
-                    if ( i >= ANAOFFSET ){
-                        analog_precision[i-ANAOFFSET] = true;
-                        analog_in[i-ANAOFFSET] = true;
-                        pinMode( pin, INPUT );
-                        datasize += 2;
-                        hasInput = true;
-                    }
-                    break;
-                case AnalogIn:
-                    if ( i >= ANAOFFSET ){
-                        analog_precision[i-ANAOFFSET] = false;
-                        analog_in[i-ANAOFFSET] = true;
-                        pinMode( pin, INPUT );
-                        datasize += 1;
-                        hasInput = true;
-                    }
-                    break;
-                case DigitalIn:
-                    pinMode( pin, INPUT );
-                    digital_in[i] = true;
-                    datasize += 1;
-                    hasInput = true;
-                    break;
-                case AnalogOut:
-                    for ( int j=0; j < 6; j++ ){
-                        if ( pwm_pins[j] == pin ){
-                            pinMode( pin, OUTPUT );
-                            pwm_on[j] = true;
-                            datasizeout++;
-                            hasOutput = true;
-                        }
-                    }
-                    break;
-                case DigitalOut:
-                    digital_out[i] = true;
-                    pinMode( pin, OUTPUT );
-                    datasizeout++;
-                    hasOutput = true;
-                    break;
-#if MINIBEE_ENABLE_SHT == 1
-                case SHTClock:
-                    sht_pins[0] = pin;
-                    shtOn = true;
-                    pinMode( pin, OUTPUT );
-                    break;
-                case SHTData:
-                    sht_pins[1] = pin;
-                    shtOn = true;
-                    pinMode( pin, OUTPUT );
-                    datasize += 4;
-                    hasInput = true;
-                    break;
-#endif
-#if MINIBEE_ENABLE_TWI == 1
-                case TWIClock:
-                case TWIData:
-                    twiOn = true;
-                    datasize += 6;
-                    hasInput = true;
-                    break;
-#endif
-#if MINIBEE_ENABLE_PING == 1
-                case Ping:
-                    pingOn = true;
-                    ping_pin = pin;
-                    datasize += 2;
-                    hasInput = true;
-                    break;
-#endif
-                case Custom:
-                    // pin is used in the custom part of the firmware
-                    custom_pin[i] = true;
-                    hasCustom = true;
-                    break;
-                case NotUsed:
-                    break;
-                case UnConfigured:
-                    break;
-            }
+		switch( config[i+4] ){
+		    case AnalogIn10bit:
+			if ( i >= ANAOFFSET ){
+			    analog_precision[i-ANAOFFSET] = true;
+			    analog_in[i-ANAOFFSET] = true;
+			    pinMode( pin, INPUT );
+			    datasize += 2;
+			    hasInput = true;
+			}
+			break;
+		    case AnalogIn:
+			if ( i >= ANAOFFSET ){
+			    analog_precision[i-ANAOFFSET] = false;
+			    analog_in[i-ANAOFFSET] = true;
+			    pinMode( pin, INPUT );
+			    datasize += 1;
+			    hasInput = true;
+			}
+			break;
+		    case DigitalIn:
+			pinMode( pin, INPUT );
+			digital_in[i] = true;
+			datasize += 1;
+			hasInput = true;
+			break;
+		    case AnalogOut:
+			for ( int j=0; j < 6; j++ ){
+			    if ( pwm_pins[j] == pin ){
+				pinMode( pin, OUTPUT );
+				pwm_on[j] = true;
+				datasizeout++;
+				hasOutput = true;
+			    }
+			}
+			break;
+		    case DigitalOut:
+			digital_out[ i ] = true;
+			pinMode( pin , OUTPUT );
+			datasizeout++;
+			hasOutput = true;
+			break;
+    #if MINIBEE_ENABLE_SHT == 1
+		    case SHTClock:
+			sht_pins[0] = pin;
+			shtOn = true;
+			pinMode(  pin, OUTPUT );
+			break;
+		    case SHTData:
+			sht_pins[1] = pin;
+			shtOn = true;
+			pinMode( pin, OUTPUT );
+			datasize += 4;
+			hasInput = true;
+			break;
+    #endif
+    #if MINIBEE_ENABLE_TWI == 1
+		    case TWIClock:
+		    case TWIData:
+			twiOn = true;
+			datasize += 6;
+			hasInput = true;
+			break;
+    #endif
+    #if MINIBEE_ENABLE_PING == 1
+		    case Ping:
+			pingOn = true;
+			ping_pin = pin;
+			datasize += 2;
+			hasInput = true;
+			break;
+    #endif
+		    case Custom:
+			// pin is used in the custom part of the firmware
+			custom_pin[ i ] = true;
+			hasCustom = true;
+			break;
+		    case NotUsed:
+			break;
+		    case UnConfigured:
+			break;
+		}
 	    }
 	}
 	
@@ -865,7 +871,7 @@ void MiniBee::parseConfig(void){
 // 	}
 	
 	uint8_t confSize = 9;
-	char * configInfo = (char*)malloc( sizeof(char) * (19*2 + confSize) );
+	char * configInfo = (char*)malloc( sizeof(char) * (NRPINS*2 + confSize) );
 	configInfo[0] = node_id;
 	configInfo[1] = config_id;
 	configInfo[2] = samplesPerMsg;
@@ -875,7 +881,7 @@ void MiniBee::parseConfig(void){
 	configInfo[6] = datasizeout;
 	configInfo[7] = customInputs;
 	configInfo[8] = customDataSize;
-	for ( i=0; i<19; i++){
+	for ( i=0; i<NRPINS; i++){
         if ( custom_pin[i] ){
             configInfo[confSize] = i;
             configInfo[confSize+1] = custom_size[i];
@@ -896,83 +902,97 @@ bool MiniBee::getFlagTWI(void) {
 } 
 
 void MiniBee::setupAccelleroTWI(void) {
-    //setup for ADXL345 Accelerometer
+#if MINIBEE_REVISION == 'B'
+  //setup for ADXL345 Accelerometer
     accel.powerOn();
+#endif
     //set rate etc
-  //setupTWI();
-//
-////------- LIS302DL setup --------------
-//  Wire.beginTransmission(accel1Address);
-//  Wire.send(0x21); // CTRL_REG2 (21h)
-//  Wire.send(B01000000);
-//  Wire.endTransmission();
-//  
-//    //SPI 4/3 wire
-//    //1=ReBoot - reset chip defaults
-//    //n/a
-//    //filter off/on
-//    //filter for freefall 2
-//    //filter for freefall 1
-//    //filter freq MSB
-//    //filter freq LSB - Hipass filter (at 400hz) 00=8hz, 01=4hz, 10=2hz, 11=1hz (lower by 4x if sample rate is 100hz)   
-//
-//  Wire.beginTransmission(accel1Address);
-//  Wire.send(0x20); // CTRL_REG1 (20h)
-//  Wire.send(B01000111);
-//  Wire.endTransmission();
-//  
-//    //sample rate 100/400hz
-//    //power off/on
-//    //2g/8g
-//    //self test
-//    //self test
-//    //z enable
-//    //y enable
-//    //x enable 
 
-//-------end LIS302DL setup --------------
+#if MINIBEE_REVISION == 'A'
+    setupTWI();
+
+      //------- LIS302DL setup --------------
+      Wire.beginTransmission(accel1Address);
+      Wire.send(0x21); // CTRL_REG2 (21h)
+      Wire.send(B01000000);
+      Wire.endTransmission();
+      
+	//SPI 4/3 wire
+	//1=ReBoot - reset chip defaults
+	//n/a
+	//filter off/on
+	//filter for freefall 2
+	//filter for freefall 1
+	//filter freq MSB
+	//filter freq LSB - Hipass filter (at 400hz) 00=8hz, 01=4hz, 10=2hz, 11=1hz (lower by 4x if sample rate is 100hz)   
+
+      Wire.beginTransmission(accel1Address);
+      Wire.send(0x20); // CTRL_REG1 (20h)
+      Wire.send(B01000111);
+      Wire.endTransmission();
+      
+	//sample rate 100/400hz
+	//power off/on
+	//2g/8g
+	//self test
+	//self test
+	//z enable
+	//y enable
+	//x enable 
+
+      //-------end LIS302DL setup --------------
+#endif
 }
 
 /// reading LIS302DL
 void MiniBee::readAccelleroTWI( int address, int dboff ){
-//    /// reading LIS302DL
-//    data[dboff]   = readTWI( address, accelResultX, 1 ) + 128 % 256;
-//    data[dboff+1] = readTWI( address, accelResultY, 1 ) + 128 % 256;
-//    data[dboff+2] = readTWI( address, accelResultZ, 1 ) + 128 % 256;
-    //reading ADXL345 Accelerometer
+
+#if MINIBEE_REVISION == 'A'
+    /// reading LIS302DL
+    data[dboff]   = readTWI( address, accelResultX, 1 ) + 128 % 256;
+    data[dboff+1] = readTWI( address, accelResultY, 1 ) + 128 % 256;
+    data[dboff+2] = readTWI( address, accelResultZ, 1 ) + 128 % 256;
+#endif
+
+    /// reading ADXL345 Accelerometer
+#if MINIBEE_REVISION == 'B'
     accel.readAccelRaw(data, dboff);
+#endif
 }
 
+#if MINIBEE_REVISION == 'A'
 void MiniBee::setupTWI(void) {
 	//start I2C bus
 	Wire.begin();
 }
 
-// int MiniBee::readTWI(int address, int bytes) {
-// 	i = 0;
-// 	int twi_reading[bytes];
-// 	Wire.requestFrom(address, bytes);
-//   	while(Wire.available()) {   
-// 		twi_reading[i] = Wire.receive();
-// 		i++;
-// 	}
-// 	return *twi_reading;
-// }
-// 
-// //read a specific register on a particular device.
-// int MiniBee::readTWI(int address, int reg, int bytes) {
-// 	i = 0;
-// 	int twi_reading[bytes];
-// 	Wire.beginTransmission(address);
-// 	Wire.send(reg);                   //set x register
-// 	Wire.endTransmission();
-// 	Wire.requestFrom(address, bytes);            //retrieve x value
-//   	while(Wire.available()) {   
-// 		twi_reading[i] = Wire.receive();
-// 		i++;
-// 	}
-// 	return *twi_reading;
-// }
+int MiniBee::readTWI(int address, int bytes) {
+	i = 0;
+	int twi_reading[bytes];
+	Wire.requestFrom(address, bytes);
+	while(Wire.available()) {   
+		twi_reading[i] = Wire.receive();
+		i++;
+	}
+	return *twi_reading;
+}
+ 
+///read a specific register on a particular device.
+int MiniBee::readTWI(int address, int reg, int bytes) {
+	i = 0;
+	int twi_reading[bytes];
+	Wire.beginTransmission(address);
+	Wire.send(reg);                   //set x register
+	Wire.endTransmission();
+	Wire.requestFrom(address, bytes);            //retrieve x value
+	while(Wire.available()) {   
+		twi_reading[i] = Wire.receive();
+		i++;
+	}
+	return *twi_reading;
+}
+#endif
+
 #endif
 
 #if MINIBEE_ENABLE_SHT == 1

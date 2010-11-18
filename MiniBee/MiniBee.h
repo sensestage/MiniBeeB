@@ -1,4 +1,4 @@
-#include "../ADXL345/ADXL345.h"
+// #include <ADXL345.h>
 
 #ifndef MiniBee_h
 #define MiniBee_h
@@ -29,6 +29,14 @@
 #ifndef MINIBEE_ENABLE_PING
 #define MINIBEE_ENABLE_PING 1
 #endif
+
+#if MINIBEE_REVISION == 'B'
+#define NRPINS 17
+#endif
+#if MINIBEE_REVISION == 'A'
+#define NRPINS 19
+#endif
+
 
 enum MiniBeePinConfig { 
   NotUsed,
@@ -112,10 +120,11 @@ class MiniBee {
 	//twi
 		bool getFlagTWI();	//returns twi flag state
 #if MINIBEE_ENABLE_TWI == 1
+#if MINIBEE_REVISION == 'A'
 		void setupTWI(void);	//setup function for TWI
 		int readTWI(int, int);	//address, number of bytes;
 		int readTWI(int, int, int);	//address, register, number of bytes
-        //ADXL345 accel;
+#endif
 		void setupAccelleroTWI();
 		void readAccelleroTWI( int address, int dboff );
 #endif
@@ -270,24 +279,34 @@ class MiniBee {
 		static uint8_t pwm_pins[]; // = { 3,5,6, 8,9,10 };
 		char pwm_values[6]; // = {0,0,0, 0,0,0};
 		
-		bool digital_out[19]; // sets whether digital out on
-		char digital_values[19];
+		bool digital_out[NRPINS]; // sets whether digital out on
+		char digital_values[NRPINS];
+		
+#if MINIBEE_REVISION == 'B'
+		uint8_t pin_ids[] = {3,4,5,6,7,8,9,10,11, 14,15,16,17 ,18,19,20,21; // ids of I/O pins
+		#define ANAOFFSET 9
+#endif
+#if MINIBEE_REVISION == 'A'
+		uint8_t pin_ids[] = {3,4,5,6,7,8,9,10,11, 12,13, 14,15,16,17 ,18,19,20,21; // ids of I/O pins
+		#define ANAOFFSET 11
+#endif
 
-		bool digital_in[19]; // sets whether digital in on
+		bool digital_in[NRPINS]; // sets whether digital in on
 
-		bool custom_pin[19]; // sets whether custom pin is configured
-		uint8_t custom_size[19]; // sets size of custom pin data
+		bool custom_pin[NRPINS]; // sets whether custom pin is configured
+		uint8_t custom_size[NRPINS]; // sets size of custom pin data
 		uint8_t customDataSize;
 
 		#define PINOFFSET 3
-		#define ANAOFFSET 11
 
 #if MINIBEE_ENABLE_TWI == 1
+#if MINIBEE_REVISION == 'A'
 	// LIS302DL accelerometer addresses
 		#define accel1Address 0x1C
 		#define accelResultX 0x29
 		#define accelResultY 0x2B
 		#define accelResultZ 0x2D
+#endif
 #endif
 
 #if MINIBEE_ENABLE_SHT == 1

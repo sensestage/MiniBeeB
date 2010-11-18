@@ -2,7 +2,7 @@
 
 #if MINIBEE_ENABLE_TWI == 1
 #include <Wire.h>
-#include "../ADXL345/ADXL345.h"
+#include <ADXL345.h>
 ADXL345 accel;
 #endif
 
@@ -948,31 +948,31 @@ void MiniBee::setupTWI(void) {
 	Wire.begin();
 }
 
-int MiniBee::readTWI(int address, int bytes) {
-	i = 0;
-	int twi_reading[bytes];
-	Wire.requestFrom(address, bytes);
-  	while(Wire.available()) {   
-		twi_reading[i] = Wire.receive();
-		i++;
-	}
-	return *twi_reading;
-}
-
-//read a specific register on a particular device.
-int MiniBee::readTWI(int address, int reg, int bytes) {
-	i = 0;
-	int twi_reading[bytes];
-	Wire.beginTransmission(address);
-	Wire.send(reg);                   //set x register
-	Wire.endTransmission();
-	Wire.requestFrom(address, bytes);            //retrieve x value
-  	while(Wire.available()) {   
-		twi_reading[i] = Wire.receive();
-		i++;
-	}
-	return *twi_reading;
-}
+// int MiniBee::readTWI(int address, int bytes) {
+// 	i = 0;
+// 	int twi_reading[bytes];
+// 	Wire.requestFrom(address, bytes);
+//   	while(Wire.available()) {   
+// 		twi_reading[i] = Wire.receive();
+// 		i++;
+// 	}
+// 	return *twi_reading;
+// }
+// 
+// //read a specific register on a particular device.
+// int MiniBee::readTWI(int address, int reg, int bytes) {
+// 	i = 0;
+// 	int twi_reading[bytes];
+// 	Wire.beginTransmission(address);
+// 	Wire.send(reg);                   //set x register
+// 	Wire.endTransmission();
+// 	Wire.requestFrom(address, bytes);            //retrieve x value
+//   	while(Wire.available()) {   
+// 		twi_reading[i] = Wire.receive();
+// 		i++;
+// 	}
+// 	return *twi_reading;
+// }
 #endif
 
 #if MINIBEE_ENABLE_SHT == 1

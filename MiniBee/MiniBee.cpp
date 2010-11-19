@@ -353,7 +353,7 @@ int MiniBee::atSet(char *c, uint8_t val) {
 }
 
 char* MiniBee::atGet(char *c) {
-	char *response = (char *)malloc(sizeof(char)*32);
+	char *response = (char *)malloc(sizeof(char)*16);
 	incoming = 0;
 	i = 0;
 	
@@ -366,9 +366,8 @@ char* MiniBee::atGet(char *c) {
 		  i++;
 		}
 	}
-	response[i] = '\0';
-	realloc(response, sizeof(char)*(i+1));
-	
+	response[i-1] = '\0';
+// 	realloc(response, sizeof(char)*(i+1));
 	return response;
 }
 
@@ -444,14 +443,14 @@ void MiniBee::routeMsg(char type, char *msg, uint8_t size) {
 	char * ser;
 
 	if ( loopback ){
-	char * loopbackMsg = (char *)malloc(sizeof(char)* (size + 2 ) );
-	loopbackMsg[0] = type;
-	loopbackMsg[1] = size;
-	for ( i=0; i<size; i++ ){
-	    loopbackMsg[i+2] = msg[i];
-	}
-	send( N_INFO, loopbackMsg, size + 2 );
-	free( loopbackMsg );
+	  char * loopbackMsg = (char *)malloc(sizeof(char)* (size + 2 ) );
+	  loopbackMsg[0] = type;
+	  loopbackMsg[1] = size;
+	  for ( i=0; i<size; i++ ){
+	      loopbackMsg[i+2] = msg[i];
+	  }
+	  send( N_INFO, loopbackMsg, size + 2 );
+	  free( loopbackMsg );
 	}
 
 	switch(type) {
@@ -471,34 +470,34 @@ void MiniBee::routeMsg(char type, char *msg, uint8_t size) {
 			break;
 		case S_ID:
 			if ( remoteConfig ){
-		if ( checkIDMsg( msg[0] ) ){
-		    len = strlen(serial);
-		    ser = (char *)malloc(sizeof(char)* (len + 1 ) );
-		    for(i = 0;i < len;i++)
-			{ ser[i] = msg[i+1]; }
-		    ser[len] = '\0';
-		    if(strcmp(ser, serial) == 0){
-			node_id = msg[len+1];	//writeConfig(msg);
-			if ( size == (len+3) ){
-			    config_id = msg[len+2];
-			    status = WAITFORCONFIG;
-			    char configInfo[2];
-			    configInfo[0] = node_id;
-			    configInfo[1] = config_id;
-			    send( N_WAIT, configInfo, 2 );
-		// 			send( N_INFO, "waitforconfig", 13 );
-			} else if ( size == (len+2) ) {
-			    readConfig();
-			    status = SENSING;
-	    // 				send( N_INFO, "sensing", 7 );
+			    if ( checkIDMsg( msg[0] ) ){
+				len = strlen(serial);
+				ser = (char *)malloc(sizeof(char)* (len + 1 ) );
+				for(i = 0;i < len;i++)
+				    { ser[i] = msg[i+1]; }
+				ser[len] = '\0';
+				if(strcmp(ser, serial) == 0){
+				    node_id = msg[len+1];	//writeConfig(msg);
+				    if ( size == (len+3) ){
+					config_id = msg[len+2];
+					status = WAITFORCONFIG;
+					char configInfo[2];
+					configInfo[0] = node_id;
+					configInfo[1] = config_id;
+					send( N_WAIT, configInfo, 2 );
+			// 			send( N_INFO, "waitforconfig", 13 );
+				    } else if ( size == (len+2) ) {
+					readConfig();
+					status = SENSING;
+			// 				send( N_INFO, "sensing", 7 );
+				    }
+		    		} else {
+// 		    		    send( N_INFO, "wrong serial number", 19 );
+		    			    send( N_INFO, ser, len );
+				}
+				free(ser);
+			    }
 			}
-	// 			} else {
-	// 			    send( N_INFO, "wrong serial number", 19 );
-	// 			    send( N_INFO, ser, len );
-		    }
-		    free(ser);
-		}
-	    }
 			break;
 		case S_CONFIG:
 	    if ( remoteConfig ){

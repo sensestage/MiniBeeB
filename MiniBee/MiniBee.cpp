@@ -491,9 +491,9 @@ void MiniBee::routeMsg(char type, char *msg, uint8_t size) {
 					status = SENSING;
 			// 				send( N_INFO, "sensing", 7 );
 				    }
-		    		} else {
-// 		    		    send( N_INFO, "wrong serial number", 19 );
-		    			    send( N_INFO, ser, len );
+// 		    		} else {
+// // 		    		    send( N_INFO, "wrong serial number", 19 );
+// 		    			    send( N_INFO, ser, len );
 				}
 				free(ser);
 			    }
@@ -837,10 +837,10 @@ void MiniBee::parseConfig(void){
 			    break;
 	#endif
 	#if MINIBEE_ENABLE_TWI == 1
-			case TWIClock:
 			case TWIData:
-			    twiOn = true;
 			    datasize += 6;
+			case TWIClock:
+			    twiOn = true;
 			    hasInput = true;
 			    break;
 	#endif
@@ -902,11 +902,11 @@ void MiniBee::parseConfig(void){
 	configInfo[7] = customInputs;
 	configInfo[8] = customDataSize;
 	for ( i=0; i<NRPINS; i++){
-	if ( custom_pin[i] ){
+	  if ( custom_pin[i] ){
 	    configInfo[confSize] = i;
 	    configInfo[confSize+1] = custom_size[i];
 	    confSize += 2;
-	}
+	  }
 	}
 	send( N_CONF, configInfo, confSize );
 	free( configInfo );

@@ -15,6 +15,15 @@ ADXL345 accel;
 
 uint8_t MiniBee::pwm_pins[] = { 3,5,6, 8,9,10 };
 
+#if MINIBEE_REVISION == 'B'
+	uint8_t MiniBee::pin_ids[] = {3,4,5,6,7,8,9,10,11, 14,15,16,17 ,18,19,20,21 }; // ids of I/O pins
+//		#define ANAOFFSET 9
+#endif
+#if MINIBEE_REVISION == 'A'
+	uint8_t MiniBee::pin_ids[] = {3,4,5,6,7,8,9,10,11, 12,13, 14,15,16,17 ,18,19,20,21 }; // ids of I/O pins
+#endif
+
+
 MiniBee::MiniBee() {
 // 	pwm_pins = { 3,5,6, 8,9,10 };
 	
@@ -357,8 +366,8 @@ char* MiniBee::atGet(char *c) {
 		  i++;
 		}
 	}
-	response[i-1] = '\0';
-	realloc(response, sizeof(char)*(i));
+	response[i] = '\0';
+	realloc(response, sizeof(char)*(i+1));
 	
 	return response;
 }
@@ -657,7 +666,7 @@ uint8_t MiniBee::readSensors( uint8_t db ){
     // TODO higher precision readings, we are now truncating to 8bit.
 #if MINIBEE_ENABLE_TWI == 1
     if ( twiOn ){
-        readAccelleroTWI( accel1Address, db );
+        readAccelleroTWI( db );
         db += 6;
     }
 #endif
@@ -957,13 +966,13 @@ void MiniBee::setupAccelleroTWI(void) {
 }
 
 /// reading LIS302DL
-void MiniBee::readAccelleroTWI( int address, int dboff ){
+void MiniBee::readAccelleroTWI( int dboff ){
 
 #if MINIBEE_REVISION == 'A'
     /// reading LIS302DL
-    data[dboff]   = readTWI( address, accelResultX, 1 ) + 128 % 256;
-    data[dboff+1] = readTWI( address, accelResultY, 1 ) + 128 % 256;
-    data[dboff+2] = readTWI( address, accelResultZ, 1 ) + 128 % 256;
+    data[dboff]   = readTWI( accel1Address, accelResultX, 1 ) + 128 % 256;
+    data[dboff+1] = readTWI( accel1Address, accelResultY, 1 ) + 128 % 256;
+    data[dboff+2] = readTWI( accel1Address, accelResultZ, 1 ) + 128 % 256;
 #endif
 
     /// reading ADXL345 Accelerometer
